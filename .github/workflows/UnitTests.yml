@@ -38,7 +38,7 @@ jobs:
           cd roblox-ts
           foreman install
           npm install
-          npm install ../path-translator
+          npm install --install-links ../path-translator
           npm run update-test-types
 
       - name: Run Tests
