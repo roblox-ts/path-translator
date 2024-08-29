@@ -1,6 +1,16 @@
 import path from "path";
 
-import { D_EXT, DTS_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, TRANSFORMED_EXT, TS_EXT, TSX_EXT } from "./constants";
+import {
+	D_EXT,
+	DTS_EXT,
+	INDEX_NAME,
+	INIT_NAME,
+	LUA_EXT,
+	LUAU_EXT,
+	TRANSFORMED_EXT,
+	TS_EXT,
+	TSX_EXT,
+} from "./constants";
 import { assert } from "./util/assert";
 
 class PathInfo {
@@ -34,6 +44,7 @@ export class PathTranslator {
 		public readonly outDir: string,
 		public readonly buildInfoOutputPath: string | undefined,
 		public readonly declaration: boolean,
+		public readonly useLuauExtension = false,
 	) {}
 
 	private makeRelativeFactory(from = this.rootDir, to = this.outDir) {
@@ -58,7 +69,7 @@ export class PathTranslator {
 				pathInfo.fileName = INIT_NAME;
 			}
 
-			pathInfo.exts.push(LUA_EXT);
+			pathInfo.exts.push(this.useLuauExtension ? LUAU_EXT : LUA_EXT);
 		}
 
 		return makeRelative(pathInfo);
@@ -114,8 +125,9 @@ export class PathTranslator {
 		const pathInfo = PathInfo.from(filePath);
 
 		// index.*.lua cannot come from a .ts file
-		if (pathInfo.extsPeek() === LUA_EXT && pathInfo.fileName !== INDEX_NAME) {
-			pathInfo.exts.pop();
+		if ((pathInfo.extsPeek() === LUAU_EXT || pathInfo.extsPeek() === LUA_EXT) && pathInfo.fileName !== INDEX_NAME) {
+			const originalExt = pathInfo.exts.pop();
+			assert(originalExt);
 
 			// ts
 			pathInfo.exts.push(TS_EXT);
@@ -145,7 +157,7 @@ export class PathTranslator {
 				pathInfo.fileName = originalFileName;
 			}
 
-			pathInfo.exts.push(LUA_EXT);
+			pathInfo.exts.push(originalExt);
 		}
 
 		if (this.declaration) {
