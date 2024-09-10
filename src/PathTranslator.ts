@@ -1,6 +1,16 @@
 import path from "path";
 
-import { D_EXT, DTS_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, TRANSFORMED_EXT, TS_EXT, TSX_EXT } from "./constants";
+import {
+	D_EXT,
+	DTS_EXT,
+	INDEX_NAME,
+	INIT_NAME,
+	LUA_EXT,
+	LUAU_EXT,
+	TRANSFORMED_EXT,
+	TS_EXT,
+	TSX_EXT,
+} from "./constants";
 import { assert } from "./util/assert";
 
 class PathInfo {
@@ -34,7 +44,12 @@ export class PathTranslator {
 		public readonly outDir: string,
 		public readonly buildInfoOutputPath: string | undefined,
 		public readonly declaration: boolean,
+		public readonly useLuauExtension = false,
 	) {}
+
+	private getLuauExt() {
+		return this.useLuauExtension ? LUAU_EXT : LUA_EXT;
+	}
 
 	private makeRelativeFactory(from = this.rootDir, to = this.outDir) {
 		return (pathInfo: PathInfo) => path.join(to, path.relative(from, pathInfo.join()));
@@ -42,7 +57,7 @@ export class PathTranslator {
 
 	/**
 	 * Maps an input path to an output path
-	 * - `.tsx?` && !`.d.tsx?` -> `.lua`
+	 * - `.ts(x)` && !`.d.ts(x)` -> `.lua(u)`
 	 * 	- `index` -> `init`
 	 * - `src/*` -> `out/*`
 	 */
@@ -51,14 +66,14 @@ export class PathTranslator {
 		const pathInfo = PathInfo.from(filePath);
 
 		if ((pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) && pathInfo.extsPeek(1) !== D_EXT) {
-			pathInfo.exts.pop(); // pop .tsx?
+			pathInfo.exts.pop(); // pop .ts(x)
 
 			// index -> init
 			if (pathInfo.fileName === INDEX_NAME) {
 				pathInfo.fileName = INIT_NAME;
 			}
 
-			pathInfo.exts.push(LUA_EXT);
+			pathInfo.exts.push(this.getLuauExt());
 		}
 
 		return makeRelative(pathInfo);
@@ -66,7 +81,7 @@ export class PathTranslator {
 
 	/**
 	 * Maps an input path to an output .d.ts path
-	 * - `.tsx?` && !`.d.tsx?` -> `.d.ts`
+	 * - `.ts(x)` && !`.d.ts(x)` -> `.d.ts`
 	 * - `src/*` -> `out/*`
 	 */
 	public getOutputDeclarationPath(filePath: string) {
@@ -74,7 +89,7 @@ export class PathTranslator {
 		const pathInfo = PathInfo.from(filePath);
 
 		if ((pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) && pathInfo.extsPeek(1) !== D_EXT) {
-			pathInfo.exts.pop(); // pop .tsx?
+			pathInfo.exts.pop(); // pop .ts(x)
 			pathInfo.exts.push(DTS_EXT);
 		}
 
@@ -82,8 +97,8 @@ export class PathTranslator {
 	}
 
 	/**
-	 * Maps an input path to an output .transformed.tsx? path
-	 * - `.tsx?` -> `.transformed.tsx?`
+	 * Maps an input path to an output .transformed.ts(x) path
+	 * - `.ts(x)` -> `.transformed.ts(x)`
 	 * - `src/*` -> `out/*`
 	 */
 	public getOutputTransformedPath(filePath: string) {
@@ -104,7 +119,7 @@ export class PathTranslator {
 
 	/**
 	 * Maps an output path to possible import paths
-	 * - `.lua` -> `.tsx?`
+	 * - `.lua(u)` -> `.ts(x)`
 	 * 	- `init` -> `index`
 	 * - `out/*` -> `src/*`
 	 */
@@ -113,9 +128,9 @@ export class PathTranslator {
 		const possiblePaths = new Array<string>();
 		const pathInfo = PathInfo.from(filePath);
 
-		// index.*.lua cannot come from a .ts file
-		if (pathInfo.extsPeek() === LUA_EXT && pathInfo.fileName !== INDEX_NAME) {
-			pathInfo.exts.pop();
+		// index.*.lua(u) cannot come from a .ts file
+		if (pathInfo.extsPeek() === this.getLuauExt() && pathInfo.fileName !== INDEX_NAME) {
+			pathInfo.exts.pop(); // pop .lua(u)
 
 			// ts
 			pathInfo.exts.push(TS_EXT);
@@ -145,12 +160,12 @@ export class PathTranslator {
 				pathInfo.fileName = originalFileName;
 			}
 
-			pathInfo.exts.push(LUA_EXT);
+			pathInfo.exts.push(this.getLuauExt());
 		}
 
 		if (this.declaration) {
 			if ((pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) && pathInfo.extsPeek(1) === D_EXT) {
-				const tsExt = pathInfo.exts.pop(); // pop .tsx?
+				const tsExt = pathInfo.exts.pop(); // pop .ts(x)
 				assert(tsExt);
 				pathInfo.exts.pop(); // pop .d
 
@@ -174,8 +189,10 @@ export class PathTranslator {
 	}
 
 	/**
-	 * Maps a src path to an import path
-	 * - `.d.tsx?` -> `.tsx?` -> `.lua`
+	 * Maps a src path to an import path.
+	 * Import paths are passed to RojoResolver and used virtually to resolve RbxPaths.
+	 * Because of this, the import path may not actually exist.
+	 * - `.d.ts(x)` -> `.ts(x)` -> `.lua(u)`
 	 * 	- `index` -> `init`
 	 */
 	public getImportPath(filePath: string, isNodeModule = false) {
@@ -183,7 +200,7 @@ export class PathTranslator {
 		const pathInfo = PathInfo.from(filePath);
 
 		if (pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) {
-			pathInfo.exts.pop(); // pop .tsx?
+			pathInfo.exts.pop(); // pop .ts(x)
 			if (pathInfo.extsPeek() === D_EXT) {
 				pathInfo.exts.pop(); // pop .d
 			}
@@ -193,9 +210,11 @@ export class PathTranslator {
 				pathInfo.fileName = INIT_NAME;
 			}
 
-			pathInfo.exts.push(LUA_EXT); // push .lua
+			pathInfo.exts.push(this.getLuauExt()); // push .lua(u)
 		}
 
+		// inside of node_modules, we assume compiled file is sibling of filePath
+		// outside, we check relative to outDir
 		return isNodeModule ? pathInfo.join() : makeRelative(pathInfo);
 	}
 }
