@@ -57,7 +57,7 @@ export class PathTranslator {
 
 	/**
 	 * Maps an input path to an output path
-	 * - `.ts(x)` && !`.d.ts(x)` -> `.luau`
+	 * - `.ts(x)` && !`.d.ts(x)` -> `.lua(u)`
 	 * 	- `index` -> `init`
 	 * - `src/*` -> `out/*`
 	 */
@@ -119,7 +119,7 @@ export class PathTranslator {
 
 	/**
 	 * Maps an output path to possible import paths
-	 * - `.luau` -> `.ts(x)`
+	 * - `.lua(u)` -> `.ts(x)`
 	 * 	- `init` -> `index`
 	 * - `out/*` -> `src/*`
 	 */
@@ -128,7 +128,7 @@ export class PathTranslator {
 		const possiblePaths = new Array<string>();
 		const pathInfo = PathInfo.from(filePath);
 
-		// index.*.luau cannot come from a .ts file
+		// index.*.lua(u) cannot come from a .ts file
 		if (pathInfo.extsPeek() === this.getLuauExt() && pathInfo.fileName !== INDEX_NAME) {
 			const originalExt = pathInfo.exts.pop();
 			assert(originalExt);
@@ -191,7 +191,7 @@ export class PathTranslator {
 
 	/**
 	 * Maps a src path to an import path
-	 * - `.d.ts(x)` -> `.ts(x)` -> `.luau`
+	 * - `.d.ts(x)` -> `.ts(x)` -> `.lua(u)`
 	 * 	- `index` -> `init`
 	 */
 	public getImportPath(filePath: string, isNodeModule = false) {
@@ -209,7 +209,7 @@ export class PathTranslator {
 				pathInfo.fileName = INIT_NAME;
 			}
 
-			pathInfo.exts.push(this.getLuauExt()); // push .luau
+			pathInfo.exts.push(this.getLuauExt()); // push .lua(u)
 		}
 
 		return isNodeModule ? pathInfo.join() : makeRelative(pathInfo);
