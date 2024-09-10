@@ -47,13 +47,17 @@ export class PathTranslator {
 		public readonly useLuauExtension = false,
 	) {}
 
+	private getLuauExt() {
+		return this.useLuauExtension ? LUAU_EXT : LUA_EXT;
+	}
+
 	private makeRelativeFactory(from = this.rootDir, to = this.outDir) {
 		return (pathInfo: PathInfo) => path.join(to, path.relative(from, pathInfo.join()));
 	}
 
 	/**
 	 * Maps an input path to an output path
-	 * - `.tsx?` && !`.d.tsx?` -> `.lua`
+	 * - `.ts(x)` && !`.d.ts(x)` -> `.luau`
 	 * 	- `index` -> `init`
 	 * - `src/*` -> `out/*`
 	 */
@@ -69,7 +73,7 @@ export class PathTranslator {
 				pathInfo.fileName = INIT_NAME;
 			}
 
-			pathInfo.exts.push(this.useLuauExtension ? LUAU_EXT : LUA_EXT);
+			pathInfo.exts.push(this.getLuauExt());
 		}
 
 		return makeRelative(pathInfo);
@@ -115,7 +119,7 @@ export class PathTranslator {
 
 	/**
 	 * Maps an output path to possible import paths
-	 * - `.lua` -> `.tsx?`
+	 * - `.luau` -> `.ts(x)`
 	 * 	- `init` -> `index`
 	 * - `out/*` -> `src/*`
 	 */
@@ -124,8 +128,8 @@ export class PathTranslator {
 		const possiblePaths = new Array<string>();
 		const pathInfo = PathInfo.from(filePath);
 
-		// index.*.lua cannot come from a .ts file
-		if ((pathInfo.extsPeek() === LUAU_EXT || pathInfo.extsPeek() === LUA_EXT) && pathInfo.fileName !== INDEX_NAME) {
+		// index.*.luau cannot come from a .ts file
+		if (pathInfo.extsPeek() === this.getLuauExt() && pathInfo.fileName !== INDEX_NAME) {
 			const originalExt = pathInfo.exts.pop();
 			assert(originalExt);
 
@@ -187,7 +191,7 @@ export class PathTranslator {
 
 	/**
 	 * Maps a src path to an import path
-	 * - `.d.tsx?` -> `.tsx?` -> `.lua`
+	 * - `.d.ts(x)` -> `.ts(x)` -> `.luau`
 	 * 	- `index` -> `init`
 	 */
 	public getImportPath(filePath: string, isNodeModule = false) {
@@ -205,7 +209,7 @@ export class PathTranslator {
 				pathInfo.fileName = INIT_NAME;
 			}
 
-			pathInfo.exts.push(LUA_EXT); // push .lua
+			pathInfo.exts.push(this.getLuauExt()); // push .luau
 		}
 
 		return isNodeModule ? pathInfo.join() : makeRelative(pathInfo);
