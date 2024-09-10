@@ -66,7 +66,7 @@ export class PathTranslator {
 		const pathInfo = PathInfo.from(filePath);
 
 		if ((pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) && pathInfo.extsPeek(1) !== D_EXT) {
-			pathInfo.exts.pop(); // pop .tsx?
+			pathInfo.exts.pop(); // pop .ts(x)
 
 			// index -> init
 			if (pathInfo.fileName === INDEX_NAME) {
@@ -81,7 +81,7 @@ export class PathTranslator {
 
 	/**
 	 * Maps an input path to an output .d.ts path
-	 * - `.tsx?` && !`.d.tsx?` -> `.d.ts`
+	 * - `.ts(x)` && !`.d.ts(x)` -> `.d.ts`
 	 * - `src/*` -> `out/*`
 	 */
 	public getOutputDeclarationPath(filePath: string) {
@@ -89,7 +89,7 @@ export class PathTranslator {
 		const pathInfo = PathInfo.from(filePath);
 
 		if ((pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) && pathInfo.extsPeek(1) !== D_EXT) {
-			pathInfo.exts.pop(); // pop .tsx?
+			pathInfo.exts.pop(); // pop .ts(x)
 			pathInfo.exts.push(DTS_EXT);
 		}
 
@@ -97,8 +97,8 @@ export class PathTranslator {
 	}
 
 	/**
-	 * Maps an input path to an output .transformed.tsx? path
-	 * - `.tsx?` -> `.transformed.tsx?`
+	 * Maps an input path to an output .transformed.ts(x) path
+	 * - `.ts(x)` -> `.transformed.ts(x)`
 	 * - `src/*` -> `out/*`
 	 */
 	public getOutputTransformedPath(filePath: string) {
@@ -165,7 +165,7 @@ export class PathTranslator {
 
 		if (this.declaration) {
 			if ((pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) && pathInfo.extsPeek(1) === D_EXT) {
-				const tsExt = pathInfo.exts.pop(); // pop .tsx?
+				const tsExt = pathInfo.exts.pop(); // pop .ts(x)
 				assert(tsExt);
 				pathInfo.exts.pop(); // pop .d
 
@@ -198,7 +198,7 @@ export class PathTranslator {
 		const pathInfo = PathInfo.from(filePath);
 
 		if (pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) {
-			pathInfo.exts.pop(); // pop .tsx?
+			pathInfo.exts.pop(); // pop .ts(x)
 			if (pathInfo.extsPeek() === D_EXT) {
 				pathInfo.exts.pop(); // pop .d
 			}
