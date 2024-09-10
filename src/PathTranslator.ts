@@ -189,8 +189,10 @@ export class PathTranslator {
 	}
 
 	/**
-	 * Maps a src path to an import path
-	 * - `.d.ts(x)` -> `.ts(x)` -> `.lua(u)`
+	 * Maps a src path to an import path.
+	 * Import paths are passed to RojoResolver and used virtually to resolve RbxPaths.
+	 * Because of this, the import path may not actually exist.
+	 * - `.d.ts(x)` -> `.ts(x)` -> `.luau`
 	 * 	- `index` -> `init`
 	 */
 	public getImportPath(filePath: string, isNodeModule = false) {
@@ -208,7 +210,7 @@ export class PathTranslator {
 				pathInfo.fileName = INIT_NAME;
 			}
 
-			pathInfo.exts.push(this.getLuauExt()); // push .lua(u)
+			pathInfo.exts.push(LUAU_EXT); // push .luau
 		}
 
 		// inside of node_modules, we assume compiled file is sibling of filePath
