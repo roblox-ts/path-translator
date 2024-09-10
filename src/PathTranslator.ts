@@ -130,8 +130,7 @@ export class PathTranslator {
 
 		// index.*.lua(u) cannot come from a .ts file
 		if (pathInfo.extsPeek() === this.getLuauExt() && pathInfo.fileName !== INDEX_NAME) {
-			const originalExt = pathInfo.exts.pop();
-			assert(originalExt);
+			pathInfo.exts.pop(); // pop .lua(u)
 
 			// ts
 			pathInfo.exts.push(TS_EXT);
@@ -161,7 +160,7 @@ export class PathTranslator {
 				pathInfo.fileName = originalFileName;
 			}
 
-			pathInfo.exts.push(originalExt);
+			pathInfo.exts.push(this.getLuauExt());
 		}
 
 		if (this.declaration) {
