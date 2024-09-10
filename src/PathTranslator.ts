@@ -212,6 +212,8 @@ export class PathTranslator {
 			pathInfo.exts.push(this.getLuauExt()); // push .lua(u)
 		}
 
+		// inside of node_modules, we assume compiled file is sibling of filePath
+		// outside, we check relative to outDir
 		return isNodeModule ? pathInfo.join() : makeRelative(pathInfo);
 	}
 }
